@@ -1,4 +1,3 @@
-import open3d as o3d
 import numpy as np
 
 from visualization import Visualizer, StreamingVisualizer
@@ -6,7 +5,7 @@ from visualization import Visualizer, StreamingVisualizer
 
 def load_extrinsics():
     dir = "calibration"
-    stereo_calibration = np.load("{}/extrinsics/stereo_calibration.npz".format(dir))
+    stereo_calibration = np.load("camera_extrinsics/stereo_calibration.npz")
     return [stereo_calibration["R"]], [stereo_calibration["T"]]
 
 
