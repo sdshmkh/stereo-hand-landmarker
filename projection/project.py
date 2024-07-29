@@ -2,10 +2,11 @@ from typing import *
 import math
 import numpy as np
 
+
 def project3d(p1: np.ndarray, p2: np.ndarray, dir: str, world_scaling:int=1):
-    stereo_calibration = np.load("{}/extrinsics/stereo_calibration.npz".format(dir))
-    intrinsics_1 = np.load("{}/intrinsics/camera_calibration_0.npz".format(dir))
-    intrinsics_2 = np.load("{}/intrinsics/camera_calibration_1.npz".format(dir))
+    stereo_calibration = np.load("camera_extrinsics/stereo_calibration.npz")
+    intrinsics_1 = np.load("camera_intrinsics/camera_calibration_0.npz")
+    intrinsics_2 = np.load("camera_intrinsics/camera_calibration_1.npz")
     K1 = intrinsics_1["calibration_mtx"]
     K2 = intrinsics_2["calibration_mtx"]
     R, T = stereo_calibration['R'], stereo_calibration['T']

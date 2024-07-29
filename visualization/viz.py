@@ -147,6 +147,7 @@ class StreamingVisualizer(Visualizer, SyncRedisConsumer):
         
 
     def consume(self) -> bool:
+        count = list()
         self.display_scene()
         for message in self.pubsub.listen():
             messages = self.convert_messages([message])
@@ -158,6 +159,39 @@ class StreamingVisualizer(Visualizer, SyncRedisConsumer):
 
             # update landmarks and keep rendering
             self.update_scene(message.points)
+            count.append(measure_hand_connections(np.array(message.points)))
+            if len(count) > 100:
+                np.save("hand_measurements", count)
             print("updates scene")
         self.viz.run()
         
+
+
+def measure_hand_connections(pcd: np.ndarray):
+    print(pcd.shape)
+    import mediapipe as mp
+    Connections = mp.tasks.vision.HandLandmarksConnections
+    
+    middle_start_index = Connections.HAND_MIDDLE_FINGER_CONNECTIONS[0].start
+    middle_end_index = Connections.HAND_MIDDLE_FINGER_CONNECTIONS[-1].end
+    
+    index_start_index = Connections.HAND_INDEX_FINGER_CONNECTIONS[0].start
+    index_end_index = Connections.HAND_INDEX_FINGER_CONNECTIONS[-1].end
+
+    ring_start_index = Connections.HAND_RING_FINGER_CONNECTIONS[0].start
+    ring_end_index = Connections.HAND_RING_FINGER_CONNECTIONS[-1].end
+
+    pinky_start_index = Connections.HAND_PINKY_FINGER_CONNECTIONS[0].start
+    pinky_end_index = Connections.HAND_PINKY_FINGER_CONNECTIONS[-1].end
+
+    thumb_start_index = Connections.HAND_THUMB_CONNECTIONS[0].start
+    thumb_end_index = Connections.HAND_THUMB_CONNECTIONS[-1].end
+    res = [
+        1.5 * np.linalg.norm(pcd[thumb_end_index] - pcd[thumb_start_index]),
+        1.5 * np.linalg.norm(pcd[index_start_index] - pcd[index_end_index]),
+        1.5 * np.linalg.norm(pcd[middle_end_index] - pcd[middle_start_index]), 
+        1.5 * np.linalg.norm(pcd[ring_end_index] - pcd[ring_start_index]),
+        1.5 * np.linalg.norm(pcd[pinky_end_index] - pcd[pinky_start_index]),
+    ]
+    print(50 * "*", res)
+    return res

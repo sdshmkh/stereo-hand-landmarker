@@ -53,7 +53,7 @@ class Landmarker():
         # load rectification maps
         self.remap_x = None
         self.remap_y = None
-        remaps = np.load("{}/extrinsics/stereo-rectified-maps.npz".format(dir))
+        remaps = np.load("camera_extrinsics/stereo_rectification/stereo_rectification_maps.npz")
         if self.cam_id == 0:
             self.remap_x, self.remap_y = remaps['left_map_x'], remaps['left_map_y']
         elif self.cam_id == 1:
