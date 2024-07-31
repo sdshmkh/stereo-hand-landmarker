@@ -1,1 +1,1 @@
-from .viz import Visualizer, StreamingVisualizer
+from .viz import Visualizer, StreamingVisualizer, HandStreamingVisualizer

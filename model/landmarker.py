@@ -48,8 +48,7 @@ class Landmarker():
         
         options = configure_mp_options(self.model_path, result_callback=self.handle_result)
         self.landmarker = HandLandmarker.create_from_options(options)
-        print("Lander", self.landmarker)
-
+        
         # load rectification maps
         self.remap_x = None
         self.remap_y = None
@@ -58,14 +57,11 @@ class Landmarker():
             self.remap_x, self.remap_y = remaps['left_map_x'], remaps['left_map_y']
         elif self.cam_id == 1:
             self.remap_x, self.remap_y = remaps['right_map_x'], remaps['right_map_y']
-            
-
 
     def rectify_image(self, frame):
-        return frame
         r_frame = cv.remap(frame, self.remap_x, self.remap_y, cv.INTER_LANCZOS4)
         cv.imwrite("recitfied_frame_{}.png".format(self.cam_id), r_frame)
-        return r_frame
+        return frame
 
     def handle_result(self, result: HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int) -> None:
         pass
@@ -142,11 +138,23 @@ class StereoLandmarker(RedisConsumer, SyncRedisProducer):
         points3d = project3d(landmarks[:, 0], landmarks[:, 1], "calibration")
         print("points 3d shape", points3d.shape)
         l3d = Landmarker3D(points3d.tolist())
-
+        # l3d = Landmarker3D(world_landmarks(message_objs))
+        # print("+"*30, l3d.shape)
         # push them into a pub/sub queue
         self.produce(l3d)
         return True
 
+
+def world_landmarks(message_objs: List[RedisHandlandMarkerResult]):
+    all_landmarks = list()
+    for landmark_id in range(21):
+        curr_landmark = list()
+        for message in message_objs:
+            landmark = message.result.hand_world_landmarks[0][landmark_id]
+            curr_landmark.append((landmark.x, landmark.y, landmark.z))
+        all_landmarks.append(curr_landmark)
+    as_numpy = np.array(all_landmarks)
+    return as_numpy
 
 def landmarks_to_numpy(message_objs: List[RedisHandlandMarkerResult]):
     # 21 landmarks - mediapipe
