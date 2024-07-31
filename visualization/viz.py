@@ -173,7 +173,6 @@ class HandStreamingVisualizer(Visualizer, SyncRedisConsumer):
     def __init__(self, cams=2, R=[], T=[]):
         Visualizer.__init__(self, cams, R, T)
         SyncRedisConsumer.__init__(self, "world_landmarks_cam_0")
-        
 
     def consume(self) -> bool:
         count = list()
@@ -204,7 +203,6 @@ class HandStreamingVisualizer(Visualizer, SyncRedisConsumer):
             for landmark in wl:
                 landmarks.append((landmark.x, landmark.y, landmark.z))
         return np.array(landmarks)
-
 
 def measure_hand_connections(pcd: np.ndarray):
     print(pcd.shape)

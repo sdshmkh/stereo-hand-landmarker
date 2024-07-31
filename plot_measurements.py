@@ -24,17 +24,20 @@ data5 = data[:, 4]
 # right ring = 7.5
 # right middle = 8.4
 # right index = 7.3
+
 # right_hand_dims = [7.3, 8.4, 7.5, 6.2]
 # left_hand_dims = [7.3, 8.2, 7.4, 5.9]
 left_hand_paul= [7.5, 8.3, 7.8, 6.2]
 right_hand_dims = [7.5, 8.2, 7.5, 6.2] # paul
 right_hand_dims = [7.3, 8.2, 7.4, 6] # jagger
 right_hand_dims = [7.3, 7.9, 7.5, 6.2]
+
 # Create a figure and axis
 plt.figure(figsize=(12, 6))
 
 # Plot histograms
 sns.histplot(data1, kde=False, color="blue", label="Thumb")
+
 sns.histplot(data2, kde=True, color="red", label="Index")
 plt.axvline(x=right_hand_dims[0], color='red', linestyle='--')
 sns.histplot(data3, kde=True, color="green", label="Middle")
