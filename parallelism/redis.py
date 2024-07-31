@@ -16,13 +16,17 @@ class RedisDecoder():
 
 
 class SyncRedisProducer():
-    def __init__(self, channel:str):
+    def __init__(self, channel:str | List[str]):
         self.conn: redis.Redis = redis_connecttion()
         self.channel = channel
     
     def produce(self, data: RedisEncoder):
         json_data = data.encode()
-        self.conn.publish(self.channel, json_data)
+        if isinstance(self.channel, list):
+            for c in self.channel:
+                self.conn.publish(c, json_data)
+        else:
+            self.conn.publish(self.channel, json_data)
 
 
 
@@ -33,9 +37,9 @@ class SyncRedisConsumer() :
         self.pubsub.subscribe(channel)
         self.pubsub.ignore_subscribe_messages = True
     
-    def convert_messages(self, messages):
+    def convert_messages(self, message):
         rc = RedisDecoder()
-        message_objs = [rc.decode(message["data"]) for message in messages]
+        message_objs = rc.decode(message["data"])
         return message_objs
     
     def consume(self, messages)-> bool:
@@ -50,12 +54,15 @@ class RedisProducer(threading.Thread):
     
     def produce(self, data: RedisEncoder):
         json_data = data.encode()
-        self.conn.publish(self.channel, json_data)
+        if isinstance(self.channel, list):
+            for c in self.channel:
+                self.conn.publish(c, json_data)
+        else:
+            self.conn.publish(self.channel, json_data)
 
 
 def consume(messages: List[any]) -> Tuple[bool, RedisDecoder]:
     message_type = "message" if [message["type"] for message in messages].count("message") == len(messages) else "diff_message"
-    channel = [message["channel"] for message in messages]
     if message_type == "message":
         for message in messages:
             data = message["data"]

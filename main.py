@@ -3,7 +3,7 @@ from visualization import StreamingVisualizer
 
 
 # Camera detectors
-rlh = RedisLandmarker("channel_cam_0", cam_id=0)
+rlh = RedisLandmarker(["channel_cam_0", "world_landmarks_cam_0"], cam_id=0)
 rlh2 = RedisLandmarker("channel_cam_1", cam_id=1)
 
 
