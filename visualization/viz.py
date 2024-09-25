@@ -9,6 +9,16 @@ from parallelism import SyncRedisConsumer
 Connections = mp.tasks.vision.HandLandmarksConnections
 
 class Visualizer():
+    """
+    A class for visualizing Hand Landmarks in 3D space using Open3D.
+
+    Attributes:
+        cams (int): The number of cameras used in the calibration.
+        R (list): A list of rotation matrices for each camera.
+        T (list): A list of translation vectors for each camera.
+        camera_positions (list): A list of calculated camera positions in 3D space.
+        viz (o3d.visualization.Visualizer): The Open3D Visualizer object for rendering the scene.
+    """
     def __init__(self, cams=2, R=[], T=[]):
         self.cams = cams
         self.R = R
@@ -27,7 +37,9 @@ class Visualizer():
 
 
     def display_scene(self):
-        "creates an Open3D scene with cameras"
+        """
+        creates an Open3D scene with cameras
+        """
         # convert camera coordinates to point clouds
         camera_pcd = o3d.geometry.PointCloud()
         camera_pcd.points = o3d.utility.Vector3dVector(self.camera_positions)
@@ -170,11 +182,26 @@ class StreamingVisualizer(Visualizer, SyncRedisConsumer):
 
 
 class HandStreamingVisualizer(Visualizer, SyncRedisConsumer):
+    """
+    A class for visualizing hand landmarks in 3D space, streamed from Redis and rendered using a Visualizer.
+
+    Attributes:
+        cams (int): The number of cameras used in the visualization.
+        R (list): A list of rotation matrices for each camera.
+        T (list): A list of translation vectors for each camera.
+    """
     def __init__(self, cams=2, R=[], T=[]):
         Visualizer.__init__(self, cams, R, T)
         SyncRedisConsumer.__init__(self, "world_landmarks_cam_0")
+        
 
     def consume(self) -> bool:
+        """
+        Listens for Redis messages containing hand landmarks, updates the visualization, and saves measurements.
+
+        Returns:
+            bool: Always returns False once terminated or measurement count exceeds 500.
+        """
         count = list()
         self.display_scene()
         for message in self.pubsub.listen():
