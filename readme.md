@@ -1,6 +1,8 @@
 ### Stereo Hand landmarker
 
-Utilizes Stereo cameras to dectect handland marks and render in 3D space
+Utilizes Stereo cameras to dectect handland marks and render in 3D space.
+
+![](screenshots/hand-landmarker.gif)
 
 ## Setting up
 
