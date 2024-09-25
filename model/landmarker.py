@@ -26,6 +26,16 @@ def configure_mp_options(model_path: str, running_mode=RunningMode.LIVE_STREAM, 
 
 
 class RedisHandlandMarkerResult(RedisEncoder):
+    """
+    A class representing the result of a hand landmarker. 
+    Contains interfaces for creating redis data objects. 
+
+    Attributes:
+        cam_id (int): The camera ID from which the result is captured.
+        timestamp (int): The timestamp of the result. Default is 0.
+        result (HandLandmarkerResult): The result of the hand landmark detection. Default is None.
+        terminate (bool): A flag indicating whether to terminate the process. Default is False.
+    """
     def __init__(self, cam_id:int, timestamp:int = 0, result:HandLandmarkerResult = None, terminate:bool = False) -> None:
         self.result = result
         self.timestamp = timestamp
@@ -33,13 +43,31 @@ class RedisHandlandMarkerResult(RedisEncoder):
         self.cam_id = cam_id
 
 class Landmarker3D(RedisEncoder):
+    """
+    A class representing the 3D points of a landmarker. 
+    Contains interfaces for creating redis data objects. 
+
+    Attributes:
+        points (list): A list of 3D points representing landmarks.
+        terminate (bool): A flag indicating whether to terminate the process. Default is False.
+    """
     def __init__(self, points, terminate=False) -> None:
         super().__init__()
         self.points = points
         self.terminate = terminate
 
-    
+
 class Landmarker():
+    """
+    A class representing a landmarker that detects hand landmarks from a video stream using Mediapipe.
+
+    Attributes:
+        model_path (str): The path to the model used for hand landmark detection.
+        cap (cv.VideoCapture): The video capture object from the camera.
+        cam_id (int): The camera ID used for video capture.
+        remap_x (numpy.ndarray): The x-coordinate remap for image rectification.
+        remap_y (numpy.ndarray): The y-coordinate remap for image rectification.
+    """
     def __init__(self, cam_id, dir="calibration") -> None:
         self.model_path = "model/handlandmarker_models/hand_landmarker.task"
         self.cap: cv.VideoCapture = cv.VideoCapture(cam_id)
@@ -58,15 +86,41 @@ class Landmarker():
         elif self.cam_id == 1:
             self.remap_x, self.remap_y = remaps['right_map_x'], remaps['right_map_y']
 
-    def rectify_image(self, frame):
+    def rectify_image(self, frame) -> np.ndarray:
+        """
+        Rectifies the given image frame using the loaded remap matrices.
+
+        Args:
+            frame (numpy.ndarray): The image frame to be rectified.
+
+        Returns:
+            numpy.ndarray: The rectified image frame.
+        """
         r_frame = cv.remap(frame, self.remap_x, self.remap_y, cv.INTER_LANCZOS4)
         cv.imwrite("recitfied_frame_{}.png".format(self.cam_id), r_frame)
         return frame
 
     def handle_result(self, result: HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int) -> None:
+        """
+        Handles the result from the hand landmarker To be implemented by Child Class.
+
+        Args:
+            result (HandLandmarkerResult): The result from the hand landmark detection.
+            output_image (mp.Image): The output image containing the landmarks.
+            timestamp_ms (int): The timestamp at which the result was obtained.
+        """
         pass
         
     def detect_landmarks(self) -> bool:
+        """
+        Detects hand landmarks from the video stream.
+
+        Raises:
+            Exception: If the video capture cannot be opened.
+
+        Returns:
+            bool: Always returns False when the detection process is finished.
+        """
         if not self.cap.isOpened():
             self.cap.release()
             raise Exception("Could not capture video")
@@ -94,28 +148,58 @@ class Landmarker():
 
 
 class RedisLandmarker(Landmarker, RedisProducer):
+    """
+    A class that extends the Landmarker and RedisProducer classes, combining hand landmark detection with Redis messaging.
+
+    Attributes:
+        channel (str): The Redis channel for sending results.
+        cam_id (int): The camera ID used for video capture.
+    """
     def __init__(self, channel: str, cam_id: int) -> None:
         Landmarker.__init__(self, cam_id)
         RedisProducer.__init__(self, channel)
     
     def handle_result(self, result: HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int) -> None:
+        """
+        Handles the result from the hand landmarker, producing the result to the Redis channel.
+
+        Args:
+            result (HandLandmarkerResult): The result from hand landmark detection.
+            output_image (mp.Image): The image with landmarks overlayed.
+            timestamp_ms (int): The timestamp when the result was produced.
+        """
         if len(result.hand_landmarks) > 0:
             print("Detect in {}".format(self.cam_id))
         extended_result = RedisHandlandMarkerResult(self.cam_id, timestamp_ms, result)
         self.produce(extended_result)
     
     def run(self) -> None:
+        """
+        Runs the landmark detection process and produces a termination message once complete.
+        """
         self.detect_landmarks()
         terminate = RedisHandlandMarkerResult(self.cam_id, terminate=True)
         self.produce(terminate)
 
 
 class StereoLandmarker(RedisConsumer, SyncRedisProducer):
+    """
+    A class that combines RedisConsumer and SyncRedisProducer, used for consuming hand landmark detection results from two cameras and producing 3D points.
+    """
     def __init__(self, ) -> None:
         RedisConsumer.__init__(self, ["channel_cam_0", "channel_cam_1"])
         SyncRedisProducer.__init__(self, "channel_points_3d")
     
     def consume(self, message_objs: List[RedisHandlandMarkerResult]) -> bool:
+        """
+        Consumes messages containing hand landmark detection results, checks for landmarks in both frames, and produces 3D points.
+
+        Args:
+            message_objs (List[RedisHandlandMarkerResult]): A list of hand landmark detection results from both cameras.
+
+        Returns:
+            bool: Returns True to keep consuming if landmarks are not detected in both frames, False to stop consuming if terminated.
+        """
         # check for termination condition
         terminate = any([message_obj.terminate for message_obj in message_objs])
         if terminate:
